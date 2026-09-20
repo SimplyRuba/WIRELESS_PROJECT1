@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENCS5323 Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f6fc; --card:#ffffff; --ink:#12142a; --muted:#5f6480;
+  --brand:#4f46e5; --brand2:#7c3aed; --line:#e7e9f3;
+  --busy:#ef4444; --ok:#10b981; --warn:#f59e0b;
+  --shadow:0 6px 24px rgba(30,27,75,.08);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+  background-image:radial-gradient(1200px 500px at 15% -10%,rgba(124,58,237,.10),transparent),
+                   radial-gradient(1000px 480px at 100% 0%,rgba(79,70,229,.10),transparent);}
+.wrap{max-width:1080px;margin:0 auto;padding:22px 16px 60px}
+header{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.logo{width:38px;height:38px;border-radius:11px;flex:none;
+  background:linear-gradient(135deg,var(--brand),var(--brand2));
+  box-shadow:var(--shadow)}
+h1{font-size:20px;margin:0;font-weight:800;letter-spacing:-.02em}
+.sub{color:var(--muted);font-size:13px;margin-top:2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+  box-shadow:var(--shadow);padding:18px}
+.grid{display:grid;gap:16px}
+@media(min-width:820px){.grid.cols{grid-template-columns:1fr 1fr}}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.seg{display:inline-flex;background:#eef0f8;border-radius:12px;padding:4px;gap:4px}
+.seg button{border:0;background:transparent;color:var(--muted);font:inherit;
+  font-weight:600;font-size:13px;padding:8px 14px;border-radius:9px;cursor:pointer}
+.seg button.on{background:#fff;color:var(--brand);box-shadow:var(--shadow)}
+.btn{border:0;border-radius:12px;font:inherit;font-weight:700;font-size:14px;
+  padding:11px 20px;cursor:pointer;transition:.15s}
+.btn.go{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}
+.btn.go:hover{filter:brightness(1.06)}
+.btn.stop{background:#fff;color:var(--busy);border:1px solid #f3c3c3}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+label.lbl{font-size:13px;color:var(--muted);font-weight:600}
+.switch{display:inline-flex;align-items:center;gap:8px;font-size:13px;
+  color:var(--ink);font-weight:600}
+input[type=range]{accent-color:var(--brand)}
+.pill{font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;
+  background:#eef0f8;color:var(--muted)}
+.pill.live{background:#e7f8f0;color:#0b8a5b}
+.pill.tx{background:#fdecec;color:#c0392b}
+.status{color:var(--muted);font-size:13px;margin-top:10px}
+.stat{display:flex;gap:18px;flex-wrap:wrap;margin-top:6px}
+.stat div span{display:block;font-size:11px;color:var(--muted);font-weight:600;
+  text-transform:uppercase;letter-spacing:.04em}
+.stat div b{font-size:16px;font-weight:800}
+canvas{width:100%;display:block;border-radius:12px;background:#fbfbff;
+  border:1px solid var(--line)}
+.caption{color:var(--muted);font-size:12px;margin:8px 2px 0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.chip{font-size:12px;font-weight:700;padding:6px 10px;border-radius:9px;
+  background:#eef0f8;color:var(--muted);min-width:34px;text-align:center}
+.chip.busy{background:var(--busy);color:#fff}
+.genbig{font-size:44px;font-weight:800;letter-spacing:-.02em;
+  background:linear-gradient(135deg,var(--brand),var(--brand2));
+  -webkit-background-clip:text;background-clip:text;color:transparent;line-height:1}
+.hint{font-size:12px;color:var(--muted);margin-top:12px;line-height:1.5}
+.notice{font-size:12px;color:#8a5a00;background:#fff7e6;border:1px solid #ffe4a3;
+  border-radius:10px;padding:8px 11px;margin-top:10px;display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo"></div>
+    <div>
+      <h1>2.4 GHz Wi-Fi Sensing &amp; Interference Demo</h1>
+      <div class="sub">ENCS5323 &middot; ADALM-PLUTO SDR &middot; live control panel</div>
+    </div>
+    <div style="margin-left:auto" class="row">
+      <span id="livePill" class="pill">idle</span>
+      <span id="txPill" class="pill tx" style="display:none">TRANSMITTING</span>
+    </div>
+  </header>
+
+  <!-- controls -->
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div class="row">
+        <div>
+          <label class="lbl">Mode</label>
+          <div class="seg" id="modeSeg">
+            <button data-mode="sensor" class="on">Part 1 &middot; Sensor</button>
+            <button data-mode="generator">Part 2 &middot; Generator</button>
+          </div>
+        </div>
+        <div>
+          <label class="lbl">Radio</label>
+          <div class="seg" id="simSeg">
+            <button data-sim="1" class="on">Simulate</button>
+            <button data-sim="0">Real Pluto</button>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <button id="startBtn" class="btn go">Start</button>
+        <button id="stopBtn" class="btn stop" disabled>Stop</button>
+        <button id="resetBtn" class="btn" style="background:#eef0f8;color:#5f6480">Reset</button>
+      </div>
+    </div>
+
+    <div id="txRow" class="row" style="margin-top:14px;display:none">
+      <label class="switch"><input type="checkbox" id="txChk"> Transmit on air</label>
+      <label class="lbl" style="margin-left:8px">Channel</label>
+      <select id="fixedCh" style="font:inherit;font-weight:600;padding:7px 10px;border-radius:9px;border:1px solid var(--line);background:#fff">
+        <option value="auto">Auto (hop to clearest)</option>
+      </select>
+      <label class="lbl" style="margin-left:8px">TX gain</label>
+      <input type="range" id="txGain" min="-40" max="0" step="5" value="0" style="width:130px">
+      <span id="txGainVal" class="pill">0 dB</span>
+    </div>
+    <div id="txNotice" class="notice">
+      Transmitting on air affects real Wi-Fi. Keep it indoors, aimed at your own
+      equipment, and brief. On your own channel it will drop the link.
+    </div>
+
+    <div class="status" id="msg">Idle. Pick a mode and press Start.</div>
+    <div class="stat">
+      <div><span>State</span><b id="stConn">-</b></div>
+      <div><span>Sweeps</span><b id="stSweeps">0</b></div>
+      <div><span>Elapsed</span><b id="stElapsed">0 s</b></div>
+      <div><span>Noise floor</span><b id="stNf">-</b></div>
+    </div>
+  </div>
+
+  <div class="grid cols" style="margin-top:16px">
+    <!-- spectrum -->
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <b>Power spectrum</b><span class="pill" id="occCount">-</span>
+      </div>
+      <canvas id="spec" height="240"></canvas>
+      <div class="caption">Full 2400-2500 MHz band. Red bands = occupied Wi-Fi channels.</div>
+    </div>
+    <!-- waterfall -->
+    <div class="card">
+      <b>Activity over time (waterfall)</b>
+      <canvas id="wfall" height="240"></canvas>
+      <div class="caption">Newest sweep at the bottom; brighter = stronger.</div>
+    </div>
+  </div>
+
+  <div class="grid cols" style="margin-top:16px">
+    <!-- occupancy -->
+    <div class="card">
+      <b>Channel occupancy</b>
+      <div class="chips" id="chips"></div>
+      <div class="caption" id="emList">No signals detected yet.</div>
+    </div>
+    <!-- generator -->
+    <div class="card" id="genCard">
+      <b>Generator</b>
+      <div class="row" style="align-items:flex-end;gap:22px;margin-top:8px">
+        <div>
+          <div class="caption" style="margin:0">Current channel</div>
+          <div class="genbig" id="genCh">-</div>
+        </div>
+        <div class="stat" style="margin:0">
+          <div><span>Centre</span><b id="genFc">-</b></div>
+          <div><span>Clearance</span><b id="genClr">-</b></div>
+          <div><span>Reaction</span><b id="genReact">-</b></div>
+          <div><span>Last hop</span><b id="genHop">-</b></div>
+        </div>
+      </div>
+      <div class="caption" id="genHint">Start the generator to see it choose and hop.</div>
+    </div>
+  </div>
+
+  <!-- live link test (send packets) -->
+  <div class="card" style="margin-top:16px">
+    <div class="row" style="justify-content:space-between">
+      <b>Your Wi-Fi connection — live link test (ping)</b>
+      <button id="pingBtn" class="btn" style="background:#eef0f8;color:#4f46e5;padding:9px 16px">Start link test</button>
+    </div>
+    <div class="row" style="gap:30px;margin-top:12px;align-items:flex-end">
+      <div>
+        <div class="caption" style="margin:0">Status</div>
+        <div id="pingStatus" style="font-size:30px;font-weight:800;line-height:1">—</div>
+      </div>
+      <div class="stat" style="margin:0">
+        <div><span>Pinging</span><b id="pingGw">—</b></div>
+        <div><span>Round-trip</span><b id="pingRtt">—</b></div>
+        <div><span>Packet loss</span><b id="pingLoss">—</b></div>
+      </div>
+    </div>
+    <div class="caption">Start this, then run the generator with <b>Transmit on</b> on your own
+    Wi-Fi channel — watch the packet loss jump to 100% and the status go DOWN. That is the
+    interference, live. (Sends real pings to your router; harmless.)</div>
+  </div>
+
+  <div class="hint">
+    One radio at a time: starting a new mode stops the previous one. In
+    <b>Simulate</b> mode nothing is transmitted and no hardware is needed - use it
+    to rehearse. For the real radio, connect the PWR cable first.
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let mode = "sensor", sim = true, running = false;
+
+// --- segmented controls ---
+$("modeSeg").addEventListener("click", e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  mode=b.dataset.mode;
+  [...$("modeSeg").children].forEach(x=>x.classList.toggle("on",x===b));
+  updateTxVisibility();
+});
+$("simSeg").addEventListener("click", e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  sim=b.dataset.sim==="1";
+  [...$("simSeg").children].forEach(x=>x.classList.toggle("on",x===b));
+  updateTxVisibility();
+});
+function updateTxVisibility(){
+  const show = (mode==="generator" && !sim);
+  $("txRow").style.display = show ? "flex" : "none";
+  if(!show) $("txChk").checked=false;
+  $("txNotice").style.display = ($("txChk").checked && show) ? "block":"none";
+  $("genCard").style.opacity = mode==="generator" ? "1":".55";
+}
+$("txChk").addEventListener("change",updateTxVisibility);
+$("txGain").addEventListener("input",()=>$("txGainVal").textContent=$("txGain").value+" dB");
+// fill the "Jam this channel" picker: Auto + channels 1-13
+(function(){const s=$("fixedCh");for(let c=1;c<=13;c++){const o=document.createElement("option");
+  o.value=c;o.textContent="Force channel "+c;s.appendChild(o);}})();
+
+// fetch with a hard timeout so a slow/stuck server never freezes the page
+async function post(url){
+  const c=new AbortController(); const t=setTimeout(()=>c.abort(),2500);
+  try{ await fetch(url,{method:"POST",signal:c.signal,
+    headers:{"Content-Type":"application/json"},body:this&&this.body}); }
+  catch(e){}
+  finally{ clearTimeout(t); }
+}
+$("startBtn").onclick = async ()=>{
+  const fc=$("fixedCh").value;
+  const body=JSON.stringify({mode,simulate:sim,transmit:$("txChk").checked,
+      tx_gain:parseFloat($("txGain").value),
+      fixed_channel:(fc==="auto"?null:parseInt(fc))});
+  const c=new AbortController(); const t=setTimeout(()=>c.abort(),2500);
+  try{ await fetch("/api/start",{method:"POST",signal:c.signal,
+    headers:{"Content-Type":"application/json"},body}); }catch(e){}
+  finally{ clearTimeout(t); }
+  running=true; setButtons(); clearWaterfall(); lastSweeps=-1;
+};
+$("stopBtn").onclick = async ()=>{
+  await post("/api/stop"); running=false; setButtons();
+};
+$("resetBtn").onclick = async ()=>{
+  running=false; setButtons(); clearAll();          // clear UI immediately
+  await post("/api/reset");
+  $("msg").textContent="Reset. Ready to start.";
+};
+function setButtons(){ $("startBtn").disabled=running; $("stopBtn").disabled=!running; }
+
+// live link test (ping) toggle
+let pingOn=false;
+async function postJSON(url,obj){
+  const c=new AbortController(); const t=setTimeout(()=>c.abort(),2500);
+  try{ await fetch(url,{method:"POST",signal:c.signal,
+    headers:{"Content-Type":"application/json"},body:JSON.stringify(obj)}); }
+  catch(e){} finally{ clearTimeout(t); }
+}
+$("pingBtn").onclick=async()=>{
+  pingOn=!pingOn;
+  $("pingBtn").textContent=pingOn?"Stop link test":"Start link test";
+  $("pingBtn").style.color=pingOn?"#c0392b":"#4f46e5";
+  await postJSON("/api/ping",{on:pingOn});
+};
+function clearAll(){
+  clearWaterfall(); sctx.clearRect(0,0,SP.w,SP.h); lastSweeps=-1;
+  drawChips([]);
+  ["stConn","stSweeps","stElapsed","stNf","genCh","genFc","genClr","genReact","genHop"]
+    .forEach(id=>$(id).textContent="-");
+  $("stSweeps").textContent="0"; $("stElapsed").textContent="0 s";
+  $("occCount").textContent="-"; $("emList").textContent="No signals detected yet.";
+  $("livePill").textContent="idle"; $("livePill").className="pill";
+  $("txPill").style.display="none";
+}
+
+// --- canvases ---
+const spec=$("spec"), sctx=spec.getContext("2d");
+const wf=$("wfall"), wctx=wf.getContext("2d");
+// Lock both canvases to a fixed display height so they never compound/grow.
+const VIEW_H=210, WF_W=480, WF_H=210;
+function fit(c,hCSS){const r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;
+  c.width=Math.round(r.width*d); c.height=Math.round(hCSS*d); c.style.height=hCSS+"px";
+  const x=c.getContext("2d"); x.setTransform(1,0,0,1,0,0); x.scale(d,d);
+  return {w:r.width,h:hCSS};}
+let SP=fit(spec,VIEW_H);
+// The waterfall uses a fixed-resolution pixel buffer (robust: no self-drawImage
+// or devicePixelRatio maths, which was leaving it blank). CSS stretches it.
+wf.width=WF_W; wf.height=WF_H; wf.style.height=VIEW_H+"px";
+let wfBuf=wctx.createImageData(WF_W,WF_H);
+window.addEventListener("resize",()=>{SP=fit(spec,VIEW_H);});
+
+const FMIN=2400,FMAX=2500,PMIN=-118,PMAX=-32;
+const xOf=f=>(f-FMIN)/(FMAX-FMIN)*SP.w;
+const yOf=p=>SP.h-(Math.max(PMIN,Math.min(PMAX,p))-PMIN)/(PMAX-PMIN)*SP.h;
+
+function viridis(t){t=Math.max(0,Math.min(1,t));
+  const a=[[68,1,84],[59,82,139],[33,145,140],[94,201,98],[253,231,37]];
+  const s=t*4, i=Math.floor(s), f=s-i, c0=a[i], c1=a[Math.min(4,i+1)];
+  return [c0[0]+(c1[0]-c0[0])*f,c0[1]+(c1[1]-c0[1])*f,c0[2]+(c1[2]-c0[2])*f];}
+
+function drawSpectrum(st){
+  sctx.clearRect(0,0,SP.w,SP.h);
+  // occupied channel bands
+  (st.occupied||[]).forEach(ch=>{
+    const fc=2412+5*(ch-1); const x1=xOf(fc-10),x2=xOf(fc+10);
+    sctx.fillStyle="rgba(239,68,68,.10)"; sctx.fillRect(x1,0,x2-x1,SP.h);
+  });
+  // channel grid + numbers
+  sctx.font="10px 'Plus Jakarta Sans'"; sctx.textAlign="center";
+  for(let ch=1;ch<=13;ch++){const fc=2412+5*(ch-1),x=xOf(fc);
+    sctx.strokeStyle="#eef0f8"; sctx.beginPath();sctx.moveTo(x,0);sctx.lineTo(x,SP.h);sctx.stroke();
+    const on=(st.occupied||[]).includes(ch);
+    sctx.fillStyle=on?"#ef4444":"#b9bdd0"; sctx.fillText(ch,x,12);}
+  // noise floor
+  if(st.noise_floor!=null){const y=yOf(st.noise_floor);
+    sctx.strokeStyle="#c7cbe0"; sctx.setLineDash([5,4]); sctx.beginPath();
+    sctx.moveTo(0,y);sctx.lineTo(SP.w,y);sctx.stroke(); sctx.setLineDash([]);}
+  // psd
+  const F=st.freqs,P=st.psd; if(F&&P&&F.length===P.length&&F.length){
+    sctx.strokeStyle="#4f46e5"; sctx.lineWidth=1.4; sctx.beginPath();
+    for(let i=0;i<F.length;i++){const x=xOf(F[i]),y=yOf(P[i]);
+      i?sctx.lineTo(x,y):sctx.moveTo(x,y);} sctx.stroke();}
+}
+
+function pushWaterfall(st){
+  const F=st.freqs,P=st.psd; if(!F||!P||!P.length) return;
+  // Colour relative to the measured noise floor, so it fills visibly whether
+  // the floor is ~-95 (simulated) or ~-129 dBm (real radio): 0 at the floor,
+  // bright at ~35 dB above it.
+  const nf=(st.noise_floor!=null)?st.noise_floor:-110;
+  const d=wfBuf.data;
+  d.copyWithin(0, WF_W*4, WF_W*WF_H*4);            // scroll every row up by one
+  const base=(WF_H-1)*WF_W*4;
+  const span=(F[F.length-1]-F[0])||1;
+  for(let x=0;x<WF_W;x++){
+    const f=FMIN+(x/WF_W)*(FMAX-FMIN);
+    let idx=Math.round((f-F[0])/span*(F.length-1));
+    idx=idx<0?0:(idx>F.length-1?F.length-1:idx);
+    const c=viridis((P[idx]-nf)/35); const o=base+x*4;
+    d[o]=c[0]|0; d[o+1]=c[1]|0; d[o+2]=c[2]|0; d[o+3]=255;
+  }
+  wctx.putImageData(wfBuf,0,0);
+}
+function clearWaterfall(){
+  const d=wfBuf.data;
+  for(let i=0;i<d.length;i+=4){d[i]=251;d[i+1]=251;d[i+2]=255;d[i+3]=255;}
+  wctx.putImageData(wfBuf,0,0);
+}
+clearWaterfall();
+
+function drawChips(occ){
+  const wrap=$("chips"); wrap.innerHTML="";
+  for(let ch=1;ch<=13;ch++){const d=document.createElement("div");
+    d.className="chip"+(occ.includes(ch)?" busy":""); d.textContent=ch;
+    wrap.appendChild(d);}
+}
+
+let lastSweeps=-1;
+async function poll(){
+  try{
+    const c=new AbortController(); const t=setTimeout(()=>c.abort(),1800);
+    let st;
+    try{ st=await (await fetch("/api/state",{signal:c.signal})).json(); }
+    finally{ clearTimeout(t); }
+    if(!st){ setTimeout(poll,600); return; }
+    running=st.running; setButtons();
+    $("msg").textContent=st.message||"";
+    $("stConn").textContent=st.connected?(st.simulated?"Simulated":"Connected"):"-";
+    $("stSweeps").textContent=st.sweeps||0;
+    $("stElapsed").textContent=(st.elapsed||0)+" s";
+    $("stNf").textContent=st.noise_floor!=null?st.noise_floor+" dBm":"-";
+    $("livePill").textContent=st.running?"live":"idle";
+    $("livePill").className="pill"+(st.running?" live":"");
+    $("txPill").style.display=st.transmit?"inline-block":"none";
+    $("occCount").textContent=(st.occupied&&st.occupied.length)?
+      (st.occupied.length+" occupied"):"clear";
+    // draw only when a new sweep arrived
+    if(st.sweeps!==lastSweeps && st.psd && st.psd.length){
+      drawSpectrum(st); pushWaterfall(st); lastSweeps=st.sweeps;
+    } else { drawSpectrum(st); }
+    drawChips(st.occupied||[]);
+    $("emList").textContent=(st.emitters&&st.emitters.length)?
+      st.emitters.map(e=>`ch${e.ch} @ ${e.center} MHz (${e.bw} MHz)`).join("   |   ")
+      :"No signals detected yet.";
+    // generator
+    $("genCh").textContent=st.gen_channel!=null?st.gen_channel:"-";
+    $("genFc").textContent=st.gen_center_mhz!=null?st.gen_center_mhz+" MHz":"-";
+    $("genClr").textContent=st.clearance_mhz!=null?st.clearance_mhz+" MHz":
+      (st.gen_channel!=null?"free band":"-");
+    $("genReact").textContent=st.reaction_ms!=null?st.reaction_ms+" ms":"-";
+    $("genHop").textContent=st.last_hop_t!=null?"t="+st.last_hop_t+" s":"-";
+    $("genHint").textContent = (st.mode==="generator" && st.gen_channel!=null)
+      ? (st.transmit ? "Transmitting on this channel; re-sensing and hopping as the band changes."
+                     : "Sensing and choosing the clearest channel (not transmitting).")
+      : "Start the generator to see it choose and hop.";
+    // live link test
+    const pg=st.ping||{};
+    $("pingGw").textContent=pg.gateway||"—";
+    $("pingRtt").textContent=pg.rtt_ms!=null?pg.rtt_ms+" ms":"—";
+    $("pingLoss").textContent=pg.loss_pct!=null?pg.loss_pct+"%":"—";
+    if(pg.on){
+      const down=(pg.loss_pct>=100), deg=(pg.loss_pct>0);
+      $("pingStatus").textContent=down?"DOWN":(deg?"DEGRADED":"OK");
+      $("pingStatus").style.color=down?"#ef4444":(deg?"#f59e0b":"#10b981");
+    } else { $("pingStatus").textContent="off"; $("pingStatus").style.color="#9aa0b4"; }
+  }catch(e){}
+  setTimeout(poll,400);
+}
+updateTxVisibility(); setButtons(); poll();
+</script>
+</body>
+</html>

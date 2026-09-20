@@ -1,0 +1,9 @@
+# ENCS5323 project - Python dependencies
+# Install:  python3.11 -m venv .venv && .venv/bin/pip install -r requirements.txt
+# Also needs native libiio 0.25 (build from source; see README).
+numpy
+scipy
+matplotlib
+pylibiio
+pyadi-iio
+flask
